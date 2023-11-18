@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 // to generate more cycle, increase cycle number
 // then duplicate the input based on cycle number
@@ -7,6 +8,7 @@
 // . . .};
 #define CYCLE 1
 #define DATA_LENGTH 20
+
 float Va[] = {
     156.63, 246.59, 294.72, 305.51, 300.66,
     268.03, 204.18, 125.41, 42.954, -48.322,
@@ -33,7 +35,7 @@ float *in_c;
 float *F_est;
 float *Theta_est;
 float *Harmonics;
-float Ts;
+float Ts;  // sampling time
 float Kc1; // Kc are controller gains
 float Kc2; // choose your controller and
 float Kc3; // gains accordingly to get satisfied result
@@ -47,24 +49,68 @@ DDATA ddata = {
 };
 
 void estimateFrequencyAndTheta(DDATA *d, int dataSize){
-// Implementation for estimating frequency and theta
-return;
+    /*
+     * Method:
+     * - to find a sinusoidal frequency, we can find when 0 is crossed
+     * - 1 periodic happens when 0 is crossed 2 times
+     */
+    float zeroCrossingCount = 0;
+    float sumTheta = 0;
+    int i;
+
+    /* find out how many times we cross 0 border */
+    for(i = 1; i < dataSize; i++){
+        if((d->in_a[i-1] * d->in_a[i]) < 0){
+            // the data has crossed from positive to negative; vice versa
+            zeroCrossingCount++;
+        }
+    }
+
+    /*
+     * frequency formula:
+     * number_of_cycle = zeroCrossingCount / 2
+     * f = number_of_cycle / total time 
+     */ 
+    float totalTime = dataSize * d->Ts;
+    float frequencyEstimate = (zeroCrossingCount / 2) / (totalTime);
+
+    /*
+     * setimating phase angle
+     * found a way in internet. I will develop it further
+     */
+    float thetaEstimate = atan(d->in_a[0] / d->in_b[0]);
+
+    // Store the estimates
+    *(d->F_est) = frequencyEstimate;
+    *(d->Theta_est) = thetaEstimate;
+
+    return;
 }
 
 void getHarmonicAmplitudes(DDATA *d, int dataSize){
-// Implementation for getting harmonic amplitudes
-return;
+    // I have no idea
+    return;
 }
 
 int main()
 {
-int i = 0;
+    int i = 0;
 
-for(i = 0; i < DATA_LENGTH * CYCLE; i++)
-{
+    ddata.F_est = malloc(sizeof(float));
+    ddata.Theta_est = malloc(sizeof(float));
+    ddata.Harmonics = malloc(sizeof(float));
+
     estimateFrequencyAndTheta(&ddata, DATA_LENGTH * CYCLE);
     getHarmonicAmplitudes(&ddata, DATA_LENGTH * CYCLE);
-}
 
-return 0;
+    printf("estimated frequency : %.2f\n", *(ddata.F_est));
+    printf("estimated Theta     : %.2f\n", *(ddata.Theta_est));
+
+    printf("done\n");
+
+    free(ddata.F_est);
+    free(ddata.Theta_est);
+    free(ddata.Harmonics);
+
+    return 0;
 }
